@@ -1,0 +1,93 @@
+# CR Camera Driver Configuration
+# 相机配置文件，定义每个相机的设备路径、topic名称和图像尺寸
+
+cameras:
+  - id: 0
+    device: "/dev/video0"
+    width: 1920
+    height: 1536
+    enabled: true
+    resize_topics:               # 输出topic配置
+      - topic: "/cr/camera/rgb/front_right_full"
+        width: 1920
+        height: 1536
+        format: "RGB"
+        enabled: true            # full图像输出
+      - topic: "/cr/camera/bgr/front_right_960_768"
+        width: 960
+        height: 768
+        format: "BGR"
+        enabled: true            # resize图像输出
+    description: "前右相机"
+
+  - id: 1
+    device: "/dev/video1" 
+    width: 1920
+    height: 1536
+    enabled: true
+    resize_topics:               # 输出topic配置
+      - topic: "/cr/camera/rgb/front_left_full"
+        width: 1920
+        height: 1536
+        format: "RGB"
+        enabled: true            # full图像输出
+    description: "前左相机"
+
+  - id: 2
+    device: "/dev/video2"
+    width: 1920
+    height: 1536
+    enabled: true
+    resize_topics:               # 输出topic配置
+      - topic: "/cr/camera/bgr/left_960_768"
+        width: 960
+        height: 768
+        format: "BGR"
+        enabled: true            # 只输出resize图像，不输出full
+    description: "左侧相机"
+
+  - id: 3
+    device: "/dev/video3"
+    width: 1920
+    height: 1536
+    enabled: true
+    resize_topics:               # 输出topic配置
+      - topic: "/cr/camera/bgr/rear_960_768"
+        width: 960
+        height: 768
+        format: "BGR"
+        enabled: true            # 只输出resize图像，不输出full
+    description: "后视相机"
+
+  - id: 4
+    device: "/dev/video4"
+    width: 1920
+    height: 1536
+    enabled: true
+    resize_topics:               # 输出topic配置
+      - topic: "/cr/camera/bgr/right_960_768"
+        width: 960
+        height: 768
+        format: "BGR"
+        enabled: true            # 只输出resize图像，不输出full
+    description: "右侧相机"
+
+# 全局设置
+global_settings:
+  # 图像格式配置
+  pixel_format: "YUYV" # "UYVY"        # 像素格式：UYVY, YUYV, RGB24等
+  field_type: "NONE"          # 场类型：NONE, INTERLACED等
+  colorspace: "SRGB"          # 色彩空间：SRGB, REC709等
+  
+  # 缓冲区配置
+  num_buffers: 2              # V4L2缓冲区数量（1或2）
+  
+  # 帧率控制
+  frame_skip_ratio: 3         # 帧跳过比例：1=不跳过，2=每两帧发布一帧，3=每三帧发布一帧
+                              # 此参数统一控制所有启用发布的相机的帧率
+  
+  # VIC转换器配置
+  use_vic_converter: true     # 是否启用VIC硬件加速转换
+  
+  # 统计打印配置
+  stats_interval: 5           # 统计表格打印间隔（秒）

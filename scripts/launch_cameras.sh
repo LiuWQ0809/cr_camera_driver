@@ -190,11 +190,11 @@ main() {
     green_print "Publishing topics:"
     for cam in "${CAMERA_ARRAY[@]}"; do
         case $cam in
-            0) green_print "  Camera $cam -> /cr/camera/rgb/front_right_full" ;;
-            1) green_print "  Camera $cam -> /cr/camera/rgb/front_left_full" ;;
-            2) green_print "  Camera $cam -> /cr/camera/rgb/left_full" ;;
-            3) green_print "  Camera $cam -> /cr/camera/rgb/rear_full" ;;
-            4) green_print "  Camera $cam -> /cr/camera/rgb/right_full" ;;
+            0) green_print "  Camera $cam -> /cr/camera/bgr/front_right_960_768" ;;
+            1) green_print "  Camera $cam -> /cr/camera/bgr/front_left_960_768" ;;
+            2) green_print "  Camera $cam -> /cr/camera/bgr/left_960_768" ;;
+            3) green_print "  Camera $cam -> /cr/camera/bgr/right_960_768" ;;
+            4) green_print "  Camera $cam -> /cr/camera/bgr/rear_960_768" ;;
         esac
     done
     green_print "========================================="

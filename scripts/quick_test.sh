@@ -36,7 +36,7 @@ ros2 topic list | grep "/cr/camera"
 
 # 检查topic数据
 green_print "Checking topic data (5 seconds)..."
-timeout 5 ros2 topic hz /cr/camera/rgb/front_right_full
+timeout 5 ros2 topic hz /cr/camera/bgr/front_right_960_768
 
 # 清理
 green_print "Cleaning up..."

@@ -151,7 +151,7 @@ ros2 topic list | grep ^/cr/camera/
 ### 5.2 Check rate / 检查帧率
 
 ```bash
-ros2 topic hz /cr/camera/rgb/front_right_full
+ros2 topic hz /cr/camera/bgr/front_right_960_768
 ```
 
 Notes / 说明：
@@ -165,7 +165,7 @@ Notes / 说明：
 rqt_image_view
 
 # Or built-in tools (if installed)
-ros2 run image_tools showimage --ros-args -r image:=/cr/camera/rgb/front_right_full
+ros2 run image_tools showimage --ros-args -r image:=/cr/camera/bgr/front_right_960_768
 ```
 
 ---
@@ -187,6 +187,13 @@ device: "/dev/video0"
 ...
 device: "/dev/video4"
 ```
+
+默认映射（与 `config/cameras.yaml` 保持一致）：
+- `/dev/video0` → 前右
+- `/dev/video1` → 前左
+- `/dev/video2` → 左侧
+- `/dev/video3` → 右侧
+- `/dev/video4` → 后视
 
 If your `/dev/video*` numbering differs, update each camera `device:` accordingly.
 
@@ -298,4 +305,3 @@ ros2 run cr_camera_driver cr_camera_node
 # check topics
 ros2 topic list | grep ^/cr/camera/
 ```
-

@@ -8,11 +8,6 @@ cameras:
     height: 1536
     enabled: true
     resize_topics:               # 输出topic配置
-      - topic: "/cr/camera/rgb/front_right_full"
-        width: 1920
-        height: 1536
-        format: "RGB"
-        enabled: true            # full图像输出
       - topic: "/cr/camera/bgr/front_right_960_768"
         width: 960
         height: 768
@@ -26,11 +21,11 @@ cameras:
     height: 1536
     enabled: true
     resize_topics:               # 输出topic配置
-      - topic: "/cr/camera/rgb/front_left_full"
-        width: 1920
-        height: 1536
-        format: "RGB"
-        enabled: true            # full图像输出
+      - topic: "/cr/camera/bgr/front_left_960_768"
+        width: 960
+        height: 768
+        format: "BGR"
+        enabled: true            # resize图像输出
     description: "前左相机"
 
   - id: 2
@@ -52,12 +47,12 @@ cameras:
     height: 1536
     enabled: true
     resize_topics:               # 输出topic配置
-      - topic: "/cr/camera/bgr/rear_960_768"
+      - topic: "/cr/camera/bgr/right_960_768"
         width: 960
         height: 768
         format: "BGR"
         enabled: true            # 只输出resize图像，不输出full
-    description: "后视相机"
+    description: "右侧相机"
 
   - id: 4
     device: "/dev/video4"
@@ -65,12 +60,12 @@ cameras:
     height: 1536
     enabled: true
     resize_topics:               # 输出topic配置
-      - topic: "/cr/camera/bgr/right_960_768"
+      - topic: "/cr/camera/bgr/rear_960_768"
         width: 960
         height: 768
         format: "BGR"
         enabled: true            # 只输出resize图像，不输出full
-    description: "右侧相机"
+    description: "后视相机"
 
 # 全局设置
 global_settings:

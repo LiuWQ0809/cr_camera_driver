@@ -40,11 +40,11 @@ echo "监控topic帧率..."
   for i in {0..4}; do
     {
       case $i in
-        0) topic="/cr/camera/rgb/front_right_full" ;;
-        1) topic="/cr/camera/rgb/front_left_full" ;;
-        2) topic="/cr/camera/rgb/left_full" ;;
-        3) topic="/cr/camera/rgb/rear_full" ;;
-        4) topic="/cr/camera/rgb/right_full" ;;
+        0) topic="/cr/camera/bgr/front_right_960_768" ;;
+        1) topic="/cr/camera/bgr/front_left_960_768" ;;
+        2) topic="/cr/camera/bgr/left_960_768" ;;
+        3) topic="/cr/camera/bgr/right_960_768" ;;
+        4) topic="/cr/camera/bgr/rear_960_768" ;;
       esac
       
       echo "Camera $i ($topic):"

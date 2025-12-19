@@ -22,6 +22,13 @@
 *.dylib
 *.dll
 
+# Allow shipping the GEAC vendor blobs explicitly
+!geac_init/lib/libgeaccam.so
+!geac_init/lib/sensorlib/libisx031std.so
+!geac_init/lib/sensorlib/libmax9296.so
+!geac_init/lib/sensorlib/libmax96712.so
+!geac_init/lib/sensorlib/libmax96724.so
+
 # Fortran module files
 *.mod
 *.smod
@@ -39,3 +46,8 @@
 
 # debug information files
 *.dwo
+
+# compile save files
+build
+install
+log

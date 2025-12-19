@@ -22,9 +22,9 @@ CR多摄像头驱动程序，用于AGX Orin平台的GMSL2摄像头系统。
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
 │   V4L2 Camera   │    │  Image Publisher │    │    ROS2 Topics      │
 │                 │    │                  │    │                     │
-│ ┌─────────────┐ │    │ ┌──────────────┐ │    │ /cr/camera/rgb/...  │
-│ │ video0-video4│ │───▶│ │ VIC Converter│ │───▶│ /cr/camera/bgr/...  │
-│ │ (30fps UYVY) │ │    │ │ (Hardware)   │ │    │ (9.9fps RGB/BGR)   │
+│ ┌─────────────┐ │    │ ┌──────────────┐ │    │ /cr/camera/bgr/...  │
+│ │ video0-video4│ │───▶│ │ VIC Converter│ │───▶│ (5×960x768 BGR)     │
+│ │ (30fps UYVY) │ │    │ │ (Hardware)   │ │    │ (9.9fps BGR)        │
 │ └─────────────┘ │    │ └──────────────┘ │    │                     │
 │                 │    │                  │    └─────────────────────┘
 │ ┌─────────────┐ │    │ ┌──────────────┐ │
@@ -227,9 +227,11 @@ ros2 run cr_camera_driver cr_camera_node
 ║Cam ID  ║                 Topic Name                   ║Format ║   Size    ║  Rate ║ Total ║        Latency (ms)              ║
 ║        ║                                              ║       ║           ║       ║       ║    Min   Max   Avg              ║
 ╠════════╬══════════════════════════════════════════════╬═══════╬═══════════╬═══════╬═══════╬══════════════════════════════════╣
-║    0   ║ /cr/camera/rgb/front_right_full              ║ RGB   ║ 1920x1536 ║   9.9 ║   206 ║  60.0  62.1  60.8              ║
-║    1   ║ /cr/camera/bgr/front_right_960_768           ║ BGR   ║ 960x768   ║   9.9 ║   207 ║  21.6  22.5  21.9              ║
-...
+║    0   ║ /cr/camera/bgr/front_right_960_768           ║ BGR   ║ 960x768   ║   9.9 ║   207 ║  21.6  22.5  21.9              ║
+║    1   ║ /cr/camera/bgr/front_left_960_768            ║ BGR   ║ 960x768   ║   9.9 ║   206 ║  22.0  23.0  22.4              ║
+║    2   ║ /cr/camera/bgr/left_960_768                  ║ BGR   ║ 960x768   ║   9.9 ║   205 ║  21.4  22.3  21.7              ║
+║    3   ║ /cr/camera/bgr/right_960_768                 ║ BGR   ║ 960x768   ║   9.9 ║   205 ║  21.5  22.2  21.8              ║
+║    4   ║ /cr/camera/bgr/rear_960_768                  ║ BGR   ║ 960x768   ║   9.9 ║   205 ║  21.2  22.0  21.5              ║
 ╚════════╩══════════════════════════════════════════════╩═══════╩═══════════╩═══════╩═══════╩══════════════════════════════════╝
 ```
 
@@ -267,16 +269,17 @@ ros2 run cr_camera_driver cr_camera_node
 
 ## Topic映射
 
-当前配置支持6个topic的批处理发布：
+当前配置只发布5个960×768的BGR topic，原先的`/cr/camera/rgb/front_*_full` 已移除以减轻链路带宽：
 
 | 摄像头 | Topic名称 | 格式 | 尺寸 | 发布率 |
 |--------|-----------|------|------|--------|
-| Camera 0 | `/cr/camera/rgb/front_right_full` | RGB | 1920x1536 | ~9.9 FPS |
-| Camera 1 | `/cr/camera/bgr/front_right_960_768` | BGR | 960x768 | ~9.9 FPS |
-| Camera 1 | `/cr/camera/rgb/front_left_full` | RGB | 1920x1536 | ~9.9 FPS |
-| Camera 2 | `/cr/camera/bgr/front_left_960_768` | BGR | 960x768 | ~9.9 FPS |
-| Camera 3 | `/cr/camera/bgr/left_960_768` | BGR | 960x768 | ~9.9 FPS |
+| Camera 0 | `/cr/camera/bgr/front_right_960_768` | BGR | 960x768 | ~9.9 FPS |
+| Camera 1 | `/cr/camera/bgr/front_left_960_768` | BGR | 960x768 | ~9.9 FPS |
+| Camera 2 | `/cr/camera/bgr/left_960_768` | BGR | 960x768 | ~9.9 FPS |
+| Camera 3 | `/cr/camera/bgr/right_960_768` | BGR | 960x768 | ~9.9 FPS |
 | Camera 4 | `/cr/camera/bgr/rear_960_768` | BGR | 960x768 | ~9.9 FPS |
+
+**设备映射**：`/dev/video0` → 前右、`/dev/video1` → 前左、`/dev/video2` → 左侧、`/dev/video3` → 右侧、`/dev/video4` → 后视。
 
 ## 性能表现
 
@@ -286,7 +289,7 @@ ros2 run cr_camera_driver cr_camera_node
 - 🚀 **平均GPU时间**: 1.6ms (-48% vs 标准模式)
 - 📊 **Topic发布率**: 9.9 FPS (99%理论效率)
 - 🎯 **VIC效率**: 54.9%
-- 💪 **支持topic数**: 6个并发
+- 💪 **支持topic数**: 5个并发（全部为960×768 BGR）
 
 ## 系统要求
 
@@ -397,11 +400,14 @@ global_settings:
 cameras:
   - id: 0
     device: "/dev/video0"
+    width: 1920
+    height: 1536
+    enabled: true
     resize_topics:
-      - topic: "/cr/camera/rgb/front_right_full"
-        width: 1920
-        height: 1536
-        format: "RGB"           # 支持RGB/BGR格式
+      - topic: "/cr/camera/bgr/front_right_960_768"
+        width: 960
+        height: 768
+        format: "BGR"           # 支持RGB/BGR格式
         enabled: true
 ```
 
@@ -430,14 +436,14 @@ cameras:
 
 **1. 检查topic发布状态**
 ```bash
-# 查看所有摄像头topic（应该看到6个topic）
+# 查看所有摄像头topic（应该看到5个topic）
 ros2 topic list | grep /cr/camera
 
 # 检查topic发布频率（应该在9.8-9.9 FPS）
-ros2 topic hz /cr/camera/rgb/front_right_full
+ros2 topic hz /cr/camera/bgr/front_right_960_768
 
 # 查看详细topic信息
-ros2 topic info /cr/camera/rgb/front_right_full
+ros2 topic info /cr/camera/bgr/front_right_960_768
 ```
 
 **2. 性能监控**
@@ -458,9 +464,11 @@ sudo jetson_clocks --show
 ╠════════════╦═══════════════════════╦══════╦══════╦══════╣
 ║  Camera ID ║      Topic Name       ║Format║ Size ║ Rate ║
 ╠════════════╬═══════════════════════╬══════╬══════╬══════╣
-║      0     ║ rgb/front_right_full  ║ RGB  ║1920x1536║ 9.9║
-║      1     ║ bgr/front_right_960   ║ BGR  ║960x768 ║ 9.9║
-...
+║      0     ║ bgr/front_right_960_768  ║ BGR  ║960x768║ 9.9║
+║      1     ║ bgr/front_left_960_768   ║ BGR  ║960x768║ 9.9║
+║      2     ║ bgr/left_960_768         ║ BGR  ║960x768║ 9.9║
+║      3     ║ bgr/right_960_768        ║ BGR  ║960x768║ 9.9║
+║      4     ║ bgr/rear_960_768         ║ BGR  ║960x768║ 9.9║
 ```
 
 ### 🔧 高级测试
@@ -471,7 +479,7 @@ sudo jetson_clocks --show
 ros2 bag record -a
 
 # 录制特定topic
-ros2 bag record /cr/camera/rgb/front_right_full /cr/camera/bgr/front_right_960_768
+ros2 bag record /cr/camera/bgr/front_right_960_768 /cr/camera/bgr/front_left_960_768
 
 # 回放数据
 ros2 bag play <bag_file>
@@ -483,7 +491,7 @@ ros2 bag play <bag_file>
 rqt_image_view
 
 # 命令行查看图像信息（不显示图像数据）
-ros2 topic echo /cr/camera/rgb/front_right_full --no-arr
+ros2 topic echo /cr/camera/bgr/front_right_960_768 --no-arr
 ```
 
 **3. 性能基准测试**
@@ -579,7 +587,7 @@ ros2 run cr_camera_driver cr_camera_node
 **性能分析：**
 ```bash
 # 监控实时性能
-watch -n 1 "ros2 topic hz /cr/camera/rgb/front_right_full"
+watch -n 1 "ros2 topic hz /cr/camera/bgr/front_right_960_768"
 
 # 查看GPU/VIC使用率
 sudo tegrastats

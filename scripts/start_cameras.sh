@@ -64,7 +64,7 @@ EOF
 
 # 默认参数
 SKIP_INIT=false
-HIGH_PERFORMANCE=false
+HIGH_PERFORMANCE=true
 SKIP_BUILD=false
 CONFIG_ONLY=false
 VERBOSE=false

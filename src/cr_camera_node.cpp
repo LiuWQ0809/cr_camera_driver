@@ -265,6 +265,7 @@ private:
     if (v4l2_camera_->initializeCamera(config.id, cam_config)) {
       // 初始化图像发布器，传递resize topics配置
       image_publisher_->initializePublisher(config.id, config.resize_topics);
+      image_publisher_->initializeH265Stream(config.id, config.h265_stream, config.width, config.height);
       
       initialized_cameras_.push_back(config.id);
       RCLCPP_INFO(this->get_logger(), "Camera %d initialized successfully", config.id);

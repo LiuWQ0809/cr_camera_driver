@@ -137,9 +137,11 @@ bool YamlConfigManager::parseYamlFile(const std::string& content) {
     bool in_cameras_section = false;
     bool in_global_section = false;
     bool in_resize_topics = false;  // 标记是否在resize_topics段落中
+    bool in_h265_section = false;   // 标记是否在h265_output段落中
     YamlCameraConfig current_camera;
     bool has_current_camera = false;
     ResizeTopicConfig current_resize_topic;  // 当前解析的resize topic
+    YamlCameraConfig::H265StreamConfig current_h265_config;
     
     while (std::getline(stream, line)) {
         line = trim(line);
@@ -174,6 +176,7 @@ bool YamlConfigManager::parseYamlFile(const std::string& content) {
                         i, topic.topic.c_str(), topic.width, topic.height, topic.format.c_str());
                 }
                 
+                current_camera.h265_stream = current_h265_config;
                 camera_configs_.push_back(current_camera);
                 has_current_camera = false;
             }
@@ -187,13 +190,13 @@ bool YamlConfigManager::parseYamlFile(const std::string& content) {
             if (line.find("- id:") == 0) {
                 // 保存前一个相机配置
                 if (has_current_camera) {
-                    // 确保保存最后一个resize topic（如果存在）
                     if (!current_resize_topic.topic.empty()) {
                         current_camera.resize_topics.push_back(current_resize_topic);
-                        current_resize_topic = ResizeTopicConfig(); // 重置
+                        current_resize_topic = ResizeTopicConfig();
                     }
                     
-                    // Debug output for previous camera configuration
+                    current_camera.h265_stream = current_h265_config;
+                    
                     RCLCPP_INFO(rclcpp::get_logger("cr_yaml_config"), 
                         "Camera %d loaded with %zu resize topics:", 
                         current_camera.id, current_camera.resize_topics.size());
@@ -213,6 +216,11 @@ bool YamlConfigManager::parseYamlFile(const std::string& content) {
                 current_camera.width = 1920;  // 默认值
                 current_camera.height = 1536; // 默认值
                 current_camera.enabled = false; // 默认值
+                std::string default_h265_topic = "/cr/camera/h265/camera_" + std::to_string(current_camera.id);
+                current_h265_config = YamlCameraConfig::H265StreamConfig();
+                current_h265_config.topic = default_h265_topic;
+                in_resize_topics = false;
+                in_h265_section = false;
                 has_current_camera = true;
                 
             } else if (has_current_camera && line.find("device:") != std::string::npos) {
@@ -226,9 +234,35 @@ bool YamlConfigManager::parseYamlFile(const std::string& content) {
             } else if (has_current_camera && line.find("resize_topics:") != std::string::npos) {
                 in_resize_topics = true;
                 current_camera.resize_topics.clear();  // 清空现有的resize topics
+            } else if (has_current_camera && line.find("h265_output:") != std::string::npos) {
+                in_h265_section = true;
+            } else if (has_current_camera && in_h265_section) {
+                bool handled = false;
+                if (line.find("enabled:") != std::string::npos) {
+                    current_h265_config.enabled = extractBoolValue(line, "enabled");
+                    handled = true;
+                } else if (line.find("topic:") != std::string::npos) {
+                    current_h265_config.topic = extractValue(line, "topic");
+                    handled = true;
+                } else if (line.find("bitrate:") != std::string::npos) {
+                    current_h265_config.bitrate = extractIntValue(line, "bitrate");
+                    handled = true;
+                } else if (line.find("fps:") != std::string::npos) {
+                    current_h265_config.fps = extractIntValue(line, "fps");
+                    handled = true;
+                } else if (line.find("group_len:") != std::string::npos) {
+                    current_h265_config.group_len = extractIntValue(line, "group_len");
+                    handled = true;
+                } else if (line.find("description:") != std::string::npos || line.find("- topic:") != std::string::npos) {
+                    in_h265_section = false;
+                }
+                if (handled) {
+                    continue;
+                }
             } else if (has_current_camera && line.find("description:") != std::string::npos) {
                 current_camera.description = extractValue(line, "description");
                 in_resize_topics = false;  // 结束resize_topics段落
+                in_h265_section = false;
             } else if (has_current_camera && in_resize_topics) {
                 // 处理resize_topics中的内容
                 if (line.find("- topic:") != std::string::npos) {
@@ -280,6 +314,8 @@ bool YamlConfigManager::parseYamlFile(const std::string& content) {
         if (!current_resize_topic.topic.empty()) {
             current_camera.resize_topics.push_back(current_resize_topic);
         }
+        
+        current_camera.h265_stream = current_h265_config;
         
         // Debug output for current camera configuration
         RCLCPP_INFO(rclcpp::get_logger("cr_yaml_config"), 

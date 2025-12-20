@@ -13,6 +13,12 @@ cameras:
         height: 768
         format: "BGR"
         enabled: true            # resize图像输出
+    h265_output:
+      enabled: true
+      topic: "/cr/camera/h265/front_right"
+      bitrate: 5000000
+      fps: 10
+      group_len: 1
     description: "前右相机"
 
   - id: 1
@@ -25,7 +31,13 @@ cameras:
         width: 960
         height: 768
         format: "BGR"
-        enabled: true            # resize图像输出
+        enabled: true
+    h265_output:
+      enabled: true
+      topic: "/cr/camera/h265/front_left"
+      bitrate: 5000000
+      fps: 10
+      group_len: 1            # resize图像输出
     description: "前左相机"
 
   - id: 2
@@ -39,6 +51,12 @@ cameras:
         height: 768
         format: "BGR"
         enabled: true            # 只输出resize图像，不输出full
+    h265_output:
+      enabled: true
+      topic: "/cr/camera/h265/left"
+      bitrate: 5000000
+      fps: 10
+      group_len: 1
     description: "左侧相机"
 
   - id: 3
@@ -52,6 +70,12 @@ cameras:
         height: 768
         format: "BGR"
         enabled: true            # 只输出resize图像，不输出full
+    h265_output:
+      enabled: true
+      topic: "/cr/camera/h265/right"
+      bitrate: 5000000
+      fps: 10
+      group_len: 1
     description: "右侧相机"
 
   - id: 4
@@ -65,6 +89,12 @@ cameras:
         height: 768
         format: "BGR"
         enabled: true            # 只输出resize图像，不输出full
+    h265_output:
+      enabled: true
+      topic: "/cr/camera/h265/rear"
+      bitrate: 5000000
+      fps: 10
+      group_len: 1
     description: "后视相机"
 
 # 全局设置

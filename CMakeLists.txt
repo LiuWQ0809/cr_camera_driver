@@ -13,6 +13,10 @@ find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(ament_index_cpp REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
+pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
+pkg_check_modules(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)
 
 # NVIDIA VPI library
 find_library(VPI_LIB nvvpi PATHS "/usr/lib/aarch64-linux-gnu" NO_DEFAULT_PATH)
@@ -33,6 +37,8 @@ set(VPI_INCLUDE_DIR "/usr/include/vpi" CACHE STRING "VPI include directory")
 if(EXISTS ${VPI_INCLUDE_DIR})
     message(STATUS "VPI includes found at: ${VPI_INCLUDE_DIR}")
     include_directories(${VPI_INCLUDE_DIR})
+    include_directories(${GSTREAMER_INCLUDE_DIRS} ${GSTREAMER_APP_INCLUDE_DIRS} ${GSTREAMER_VIDEO_INCLUDE_DIRS})
+    link_directories(${GSTREAMER_LIBRARY_DIRS} ${GSTREAMER_APP_LIBRARY_DIRS} ${GSTREAMER_VIDEO_LIBRARY_DIRS})
 else()
     message(FATAL_ERROR "VPI include directory not found at ${VPI_INCLUDE_DIR}")
 endif()
@@ -50,6 +56,7 @@ add_executable(cr_camera_node
   src/cr_image_publisher.cpp
   src/cr_v4l2_camera.cpp
   src/cr_yaml_config.cpp
+  src/cr_h265_encoder.cpp
 )
 ament_target_dependencies(cr_camera_node 
   rclcpp 
@@ -64,6 +71,9 @@ target_link_libraries(cr_camera_node
   ${OpenCV_LIBRARIES} 
   pthread
   ${VPI_LIB}
+  ${GSTREAMER_LIBRARIES}
+  ${GSTREAMER_APP_LIBRARIES}
+  ${GSTREAMER_VIDEO_LIBRARIES}
 )
 
 # Install targets

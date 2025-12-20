@@ -31,6 +31,24 @@ void ImagePublisher::initializePublisher(int cam_id, const std::string& topic_na
                 cam_id, topic_name.c_str(), publish_enabled ? "YES" : "NO", frame_skip_ratio_);
 }
 
+void ImagePublisher::initializeH265Stream(int cam_id, const YamlCameraConfig::H265StreamConfig& config, int cam_width, int cam_height) {
+    if (!config.enabled || config.topic.empty()) {
+        return;
+    }
+
+    H265StreamState state;
+    state.config = config;
+    state.publisher = node_->create_publisher<sensor_msgs::msg::CompressedImage>(config.topic, 5);
+    state.encoder = std::make_unique<JetsonH265Encoder>(cam_width, cam_height, config.bitrate, config.fps, config.group_len);
+    if (!state.encoder->initialize()) {
+        RCLCPP_WARN(node_->get_logger(), "Camera %d H265 encoder init failed: %s", cam_id, state.encoder->getLastError().c_str());
+        return;
+    }
+
+    h265_streams_[cam_id] = std::move(state);
+    RCLCPP_INFO(node_->get_logger(), "H265 stream enabled for camera %d -> %s", cam_id, config.topic.c_str());
+}
+
 void ImagePublisher::publishImage(int cam_id, const void* buffer_data, int buffer_index, 
                                  bool use_vic_converter, int64_t corrected_wall_timestamp_ns) {
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -299,6 +317,42 @@ void ImagePublisher::publishImageBatch(int cam_id, const void* buffer_data, int 
             }
         }
     }
+
+    publishH265Encoded(cam_id, corrected_wall_timestamp_ns);
+}
+
+void ImagePublisher::publishH265Encoded(int cam_id, int64_t corrected_wall_timestamp_ns) {
+    auto it = h265_streams_.find(cam_id);
+    if (it == h265_streams_.end()) {
+        return;
+    }
+    auto& state = it->second;
+    if (!state.encoder || !state.publisher || rgb_buffer_.empty()) {
+        return;
+    }
+
+    std::vector<uint8_t> encoded;
+    if (!state.encoder->encodeRGBFrame(rgb_buffer_.data(), rgb_buffer_.size(), encoded)) {
+        RCLCPP_WARN(node_->get_logger(), "Camera %d H265 encode failed: %s", cam_id, state.encoder->getLastError().c_str());
+        return;
+    }
+
+    if (encoded.empty()) {
+        return;
+    }
+
+    auto msg = std::make_unique<sensor_msgs::msg::CompressedImage>();
+    if (corrected_wall_timestamp_ns > 0) {
+        msg->header.stamp.sec = corrected_wall_timestamp_ns / 1000000000LL;
+        msg->header.stamp.nanosec = corrected_wall_timestamp_ns % 1000000000LL;
+    } else {
+        msg->header.stamp = node_->now();
+    }
+
+    msg->header.frame_id = "camera_" + std::to_string(cam_id);
+    msg->format = "h265";
+    msg->data = std::move(encoded);
+    state.publisher->publish(std::move(msg));
 }
 
 void ImagePublisher::updateStats(int cam_id) {

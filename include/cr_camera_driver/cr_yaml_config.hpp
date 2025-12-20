@@ -33,6 +33,16 @@ struct YamlCameraConfig {
     int field_type;
     int colorspace;
     int num_buffers;
+    
+    // Jetson H265输出配置
+    struct H265StreamConfig {
+        bool enabled = false;
+        std::string topic;
+        int bitrate = 4000000; // 默认4Mbps
+        int fps = 30;
+        int group_len = 30; // GOP长度, 1=全I帧
+    };
+    H265StreamConfig h265_stream;
 };
 
 struct GlobalSettings {

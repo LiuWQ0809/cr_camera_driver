@@ -16,6 +16,25 @@ CR多摄像头驱动程序，用于AGX Orin平台的GMSL2摄像头系统。
 - **🔐 时间校准机制**: 防止负时间戳，确保时间同步准确性
 - **�🚀 批处理优化**: 一次VIC转换生成多格式多尺寸输出
 
+### 🎞️ Jetson H265 输出 (可选)
+
+CR Camera Driver can optionally encode the VIC-converted RGB stream using Jetson's `nvv4l2h265enc` hardware encoder and publish a `sensor_msgs/msg/CompressedImage` message with `format=h265`. Enable it per camera in `config/cameras.yaml`:
+
+```yaml
+    h265_output:
+      enabled: true              # 启用H265编码
+      topic: "/cr/camera/h265/camera_0"
+      bitrate: 6000000           # 目标比特率
+      fps: 30                    # 编码帧率
+      group_len: 30              # GOP长度, 1=全I帧
+```
+
+This pipeline depends on the Jetson GStreamer plugins, so install the packages if missing:
+```
+sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools
+```
+The encoded H265 stream is published alongside the regular image topics, letting other nodes consume raw frames or the compressed feed.
+
 ### 实现逻辑架构
 
 ```

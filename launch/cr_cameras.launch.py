@@ -19,6 +19,11 @@ def generate_launch_description():
                 default_value=default_config_file,
                 description="Path to cameras.yaml",
             ),
+            DeclareLaunchArgument(
+                "enable_h265",
+                default_value="true",
+                description="Enable H265 compression for all cameras",
+            ),
             ExecuteProcess(
                 cmd=["bash", "-c", f"{init_script} --no-gstreamer"],
                 name="camera_init",
@@ -29,7 +34,10 @@ def generate_launch_description():
                 executable="cr_camera_node",
                 name="cr_camera_node",
                 output="screen",
-                parameters=[{"config_file": LaunchConfiguration("config_file")}],
+                parameters=[
+                    {"config_file": LaunchConfiguration("config_file")},
+                    {"enable_h265": LaunchConfiguration("enable_h265")},
+                ],
             ),
         ]
     )

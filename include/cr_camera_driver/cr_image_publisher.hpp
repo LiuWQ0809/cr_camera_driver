@@ -126,7 +126,7 @@ private:
     void publishImageBatch(int cam_id, const void* buffer_data, int buffer_index,
                           std::chrono::high_resolution_clock::time_point start_time,
                           int64_t corrected_wall_timestamp_ns = 0);
-    void publishH265Encoded(int cam_id, int64_t corrected_wall_timestamp_ns = 0);
+    void publishH265Encoded(int cam_id, const void* buffer_data, int64_t corrected_wall_timestamp_ns = 0);
     
     // 更新统计信息
     void updateStats(int cam_id);

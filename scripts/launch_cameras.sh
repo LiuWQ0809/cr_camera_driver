@@ -20,6 +20,8 @@ usage() {
     echo "  -c, --cameras LIST  Specify which cameras to enable (default: 0,1,2,3,4)"
     echo "  -f, --fps FPS       Set frame rate (default: 30)"
     echo "  -r, --resolution WxH Set resolution (default: 1920x1536)"
+    echo "  --h265              Enable H265 compression (default: true)"
+    echo "  --no-h265           Disable H265 compression"
     echo "  --no-init           Skip camera initialization"
     echo "  --test-init         Test camera initialization with GStreamer"
     echo "  --test-all          Test all cameras before starting ROS2 node"
@@ -40,6 +42,7 @@ CAMERAS="0,1,2,3,4"
 FPS=30
 WIDTH=1920
 HEIGHT=1536
+ENABLE_H265=true
 SKIP_INIT=false
 TEST_INIT=false
 TEST_ALL=false
@@ -69,6 +72,14 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             shift 2
+            ;;
+        --h265)
+            ENABLE_H265=true
+            shift
+            ;;
+        --no-h265)
+            ENABLE_H265=false
+            shift
             ;;
         --no-init)
             SKIP_INIT=true
@@ -205,6 +216,7 @@ main() {
         -p width:=$WIDTH \
         -p height:=$HEIGHT \
         -p fps:=${FPS}.0 \
+        -p enable_h265:=$ENABLE_H265 \
         -p enable_cameras:="$CAMERA_PARAMS"
 }
 

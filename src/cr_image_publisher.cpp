@@ -81,6 +81,8 @@ void ImagePublisher::publishImage(int cam_id, const void* buffer_data, int buffe
         publishImageBatch(cam_id, buffer_data, buffer_index, start_time, corrected_wall_timestamp_ns);
     } else {
         publishUYVYImage(cam_id, buffer_data, buffer_index, start_time, corrected_wall_timestamp_ns);
+        // 如果没有使用VIC，但也启用了H265，我们需要在这里处理
+        publishH265Encoded(cam_id, buffer_data, corrected_wall_timestamp_ns);
     }
 }
 
@@ -318,21 +320,46 @@ void ImagePublisher::publishImageBatch(int cam_id, const void* buffer_data, int 
         }
     }
 
-    publishH265Encoded(cam_id, corrected_wall_timestamp_ns);
+    publishH265Encoded(cam_id, buffer_data, corrected_wall_timestamp_ns);
 }
 
-void ImagePublisher::publishH265Encoded(int cam_id, int64_t corrected_wall_timestamp_ns) {
+void ImagePublisher::publishH265Encoded(int cam_id, const void* buffer_data, int64_t corrected_wall_timestamp_ns) {
     auto it = h265_streams_.find(cam_id);
     if (it == h265_streams_.end()) {
         return;
     }
     auto& state = it->second;
-    if (!state.encoder || !state.publisher || rgb_buffer_.empty()) {
+    if (!state.encoder || !state.publisher) {
+        return;
+    }
+
+    const uint8_t* rgb_ptr = nullptr;
+    size_t rgb_size = 0;
+    cv::Mat temp_rgb;
+
+    // 如果rgb_buffer_不为空且VIC转换器已初始化，优先使用VIC转换后的数据
+    if (vic_converter_ && vic_converter_->isInitialized() && !rgb_buffer_.empty()) {
+        rgb_ptr = rgb_buffer_.data();
+        rgb_size = rgb_buffer_.size();
+    } else {
+        // 否则使用OpenCV进行转换作为回退
+        try {
+            cv::Mat uyvy(height_, width_, CV_8UC2, const_cast<void*>(buffer_data));
+            cv::cvtColor(uyvy, temp_rgb, cv::COLOR_YUV2RGB_UYVY);
+            rgb_ptr = temp_rgb.data;
+            rgb_size = temp_rgb.total() * temp_rgb.elemSize();
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(node_->get_logger(), "H265 fallback conversion failed for camera %d: %s", cam_id, e.what());
+            return;
+        }
+    }
+
+    if (!rgb_ptr || rgb_size == 0) {
         return;
     }
 
     std::vector<uint8_t> encoded;
-    if (!state.encoder->encodeRGBFrame(rgb_buffer_.data(), rgb_buffer_.size(), encoded)) {
+    if (!state.encoder->encodeRGBFrame(rgb_ptr, rgb_size, encoded)) {
         RCLCPP_WARN(node_->get_logger(), "Camera %d H265 encode failed: %s", cam_id, state.encoder->getLastError().c_str());
         return;
     }

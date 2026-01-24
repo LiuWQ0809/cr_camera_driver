@@ -52,6 +52,7 @@ struct GlobalSettings {
     int num_buffers;
     int frame_skip_ratio;
     bool use_vic_converter;
+    bool enable_h265;           // 全局H265开关
     int stats_interval;
     
     // 转换后的V4L2常量

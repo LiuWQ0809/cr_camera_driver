@@ -47,6 +47,8 @@ CR Camera Driver 一键启动脚本
 选项:
     -h, --help              显示此帮助信息
     --no-init              跳过相机初始化（如果之前已初始化）
+    --h265                 启用H265压缩输出 (默认: true)
+    --no-h265              禁用H265压缩输出
     --high-performance     启用高性能模式（推荐）
     --skip-build           跳过编译步骤
     --config-only          仅运行配置，不启动相机节点
@@ -64,6 +66,7 @@ EOF
 
 # 默认参数
 SKIP_INIT=false
+ENABLE_H265=true
 HIGH_PERFORMANCE=true
 SKIP_BUILD=false
 CONFIG_ONLY=false
@@ -86,6 +89,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-init)
             SKIP_INIT=true
+            shift
+            ;;
+        --h265)
+            ENABLE_H265=true
+            shift
+            ;;
+        --no-h265)
+            ENABLE_H265=false
             shift
             ;;
         --high-performance)
@@ -225,13 +236,14 @@ start_camera_node() {
         source install/setup.bash
 
         log_info "========================================"
-        log_info "CR Camera Driver 已启动"
+        log_info "CR Camera Driver 已启动 (H265: ${ENABLE_H265})"
         log_info "按 Ctrl+C 停止"
         log_info "========================================"
 
-        local ros_cmd=(ros2 run cr_camera_driver cr_camera_node)
+        local ros_cmd=(ros2 run cr_camera_driver cr_camera_node --ros-args -p enable_h265:="$ENABLE_H265")
+        
         if [ -n "$ROS_LOG_LEVEL_LOWER" ]; then
-            ros_cmd+=(--ros-args --log-level "$ROS_LOG_LEVEL_LOWER")
+            ros_cmd+=(--log-level "$ROS_LOG_LEVEL_LOWER")
         fi
 
         "${ros_cmd[@]}"
@@ -241,7 +253,7 @@ start_camera_node() {
         log_info "  cd $PROJECT_DIR/.."
         log_info "  source /opt/ros/humble/setup.bash"
         log_info "  source install/setup.bash"
-        log_info "  ros2 run cr_camera_driver cr_camera_node --ros-args --log-level $ROS_LOG_LEVEL_LOWER"
+        log_info "  ros2 run cr_camera_driver cr_camera_node --ros-args -p enable_h265:=$ENABLE_H265 --log-level $ROS_LOG_LEVEL_LOWER"
     fi
 }
 
@@ -263,7 +275,7 @@ main() {
     
     setup_high_performance
     # build_driver
-    init_cameras
+    # init_cameras
     verify_cameras
     start_camera_node
 }

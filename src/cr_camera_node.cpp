@@ -101,14 +101,23 @@ public:
                   e.what(), default_config_file.c_str());
     }
     this->declare_parameter("config_file", default_config_file);
+    this->declare_parameter("enable_h265", true);
     
     // 加载配置
     std::string config_file = this->get_parameter("config_file").as_string();
+    bool enable_h265_param = this->get_parameter("enable_h265").as_bool();
+
     if (!loadConfiguration(config_file)) {
       throw std::runtime_error("Failed to load camera configuration");
     }
+
+    // 使用ROS参数覆盖全局H265开关
+    for (auto& config : camera_configs_) {
+      config.h265_stream.enabled = enable_h265_param;
+    }
     
-    RCLCPP_INFO(this->get_logger(), "CR Camera Driver started");
+    RCLCPP_INFO(this->get_logger(), "CR Camera Driver started (H265: %s)", 
+                enable_h265_param ? "ENABLED" : "DISABLED");
     RCLCPP_INFO(this->get_logger(), "Loaded configuration with %zu cameras", camera_configs_.size());
     
     // 获取全局设置

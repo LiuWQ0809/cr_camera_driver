@@ -302,6 +302,8 @@ bool YamlConfigManager::parseYamlFile(const std::string& content) {
                 global_settings_.frame_skip_ratio = extractIntValue(line, "frame_skip_ratio");
             } else if (line.find("use_vic_converter:") != std::string::npos) {
                 global_settings_.use_vic_converter = extractBoolValue(line, "use_vic_converter");
+            } else if (line.find("enable_h265:") != std::string::npos) {
+                global_settings_.enable_h265 = extractBoolValue(line, "enable_h265");
             } else if (line.find("stats_interval:") != std::string::npos) {
                 global_settings_.stats_interval = extractIntValue(line, "stats_interval");
             }
@@ -418,6 +420,7 @@ void YamlConfigManager::setDefaultGlobalSettings() {
     global_settings_.num_buffers = 2;
     global_settings_.frame_skip_ratio = 2;
     global_settings_.use_vic_converter = false;
+    global_settings_.enable_h265 = true;
     global_settings_.stats_interval = 5;
     
     global_settings_.pixel_format = V4L2_PIX_FMT_UYVY;
@@ -430,6 +433,7 @@ void YamlConfigManager::applyGlobalSettingsToCamera(YamlCameraConfig& camera) co
     camera.field_type = global_settings_.field_type;
     camera.colorspace = global_settings_.colorspace;
     camera.num_buffers = global_settings_.num_buffers;
+    camera.h265_stream.enabled = global_settings_.enable_h265;
 }
 
 } // namespace cr_camera_driver

@@ -13,14 +13,12 @@ TOPICS=(
   "/cr/camera/bgr/left_960_768"
   "/cr/camera/bgr/right_960_768"
   "/cr/camera/bgr/rear_960_768"
+  "/cr/camera/h265/front_left"
+  "/cr/camera/h265/front_right"
+  "/cr/camera/h265/left"
+  "/cr/camera/h265/right"
+  "/cr/camera/h265/rear"
 )
-# TOPICS=(
-#   "/cam0/compressed"
-#   "/cam1/compressed"
-#   "/cam2/compressed"
-#   "/cam3/compressed"
-#   "/cam4/compressed"
-# )
 
 usage() {
   cat <<'EOF'
@@ -87,7 +85,7 @@ def main() -> int:
         import rclpy
         from rclpy.node import Node
         from rclpy.qos import qos_profile_sensor_data
-        from sensor_msgs.msg import Image
+        from sensor_msgs.msg import Image, CompressedImage
     except Exception as exc:
         print("ERROR: failed to import ROS 2 Python packages:", exc, file=sys.stderr)
         print("Make sure the ROS 2 environment is sourced.", file=sys.stderr)
@@ -105,8 +103,13 @@ def main() -> int:
             self._last_print = time.monotonic()
 
             for topic in topic_list:
+                # Determine message type based on topic name
+                msg_type = Image
+                if "h265" in topic or "compressed" in topic:
+                    msg_type = CompressedImage
+
                 self.create_subscription(
-                    Image,
+                    msg_type,
                     topic,
                     self._make_cb(topic),
                     qos_profile_sensor_data,

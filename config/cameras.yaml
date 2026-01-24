@@ -8,40 +8,21 @@ cameras:
     height: 1536
     enabled: true
     resize_topics:               # 输出topic配置
-      - topic: "/cr/camera/bgr/front_right_960_768"
+      - topic: "/cr/camera/bgr/front_960_768"
         width: 960
         height: 768
         format: "BGR"
         enabled: true            # resize图像输出
     h265_output:
       enabled: true
-      topic: "/cr/camera/h265/front_right"
+      topic: "/cr/camera/h265/front"
       bitrate: 5000000
       fps: 10
       group_len: 1
-    description: "前右相机"
+    description: "前相机"
 
   - id: 1
-    device: "/dev/video1" 
-    width: 1920
-    height: 1536
-    enabled: true
-    resize_topics:               # 输出topic配置
-      - topic: "/cr/camera/bgr/front_left_960_768"
-        width: 960
-        height: 768
-        format: "BGR"
-        enabled: true
-    h265_output:
-      enabled: true
-      topic: "/cr/camera/h265/front_left"
-      bitrate: 5000000
-      fps: 10
-      group_len: 1            # resize图像输出
-    description: "前左相机"
-
-  - id: 2
-    device: "/dev/video2"
+    device: "/dev/video1"
     width: 1920
     height: 1536
     enabled: true
@@ -58,6 +39,25 @@ cameras:
       fps: 10
       group_len: 1
     description: "左侧相机"
+
+  - id: 2
+    device: "/dev/video2"
+    width: 1920
+    height: 1536
+    enabled: true
+    resize_topics:               # 输出topic配置
+      - topic: "/cr/camera/bgr/rear_960_768"
+        width: 960
+        height: 768
+        format: "BGR"
+        enabled: true            # 只输出resize图像，不输出full
+    h265_output:
+      enabled: true
+      topic: "/cr/camera/h265/rear"
+      bitrate: 5000000
+      fps: 10
+      group_len: 1
+    description: "后视相机"
 
   - id: 3
     device: "/dev/video3"
@@ -78,24 +78,7 @@ cameras:
       group_len: 1
     description: "右侧相机"
 
-  - id: 4
-    device: "/dev/video4"
-    width: 1920
-    height: 1536
-    enabled: true
-    resize_topics:               # 输出topic配置
-      - topic: "/cr/camera/bgr/rear_960_768"
-        width: 960
-        height: 768
-        format: "BGR"
-        enabled: true            # 只输出resize图像，不输出full
-    h265_output:
-      enabled: true
-      topic: "/cr/camera/h265/rear"
-      bitrate: 5000000
-      fps: 10
-      group_len: 1
-    description: "后视相机"
+
 
 # 全局设置
 global_settings:
@@ -113,6 +96,9 @@ global_settings:
   
   # VIC转换器配置
   use_vic_converter: true     # 是否启用VIC硬件加速转换
+
+  # H265压缩配置
+  enable_h265: true           # 是否启用所有相机的H265压缩输出
   
   # 统计打印配置
   stats_interval: 5           # 统计表格打印间隔（秒）

@@ -216,7 +216,8 @@ private:
     if (!camera_configs_.empty()) {
       const auto& first_config = camera_configs_[0];
       image_publisher_ = std::make_unique<cr_camera_driver::ImagePublisher>(
-        this, first_config.width, first_config.height, global_settings.frame_skip_ratio);
+        this, first_config.width, first_config.height, global_settings.frame_skip_ratio,
+        first_config.pixel_format);
     }
     
     // 设置帧回调函数 - 使用线程池异步处理
@@ -251,7 +252,8 @@ private:
         use_vic_converter_ = true;
         RCLCPP_INFO(this->get_logger(), "VIC converter initialized successfully");
       } else {
-        RCLCPP_WARN(this->get_logger(), "VIC converter initialization failed, using UYVY format");
+        RCLCPP_WARN(this->get_logger(), "VIC converter initialization failed, using raw %s format",
+                    global_settings.pixel_format_str.c_str());
         vic_converter_.reset();
         use_vic_converter_ = false;
       }

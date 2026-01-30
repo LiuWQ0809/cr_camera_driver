@@ -3,6 +3,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
+#include <linux/videodev2.h>
 #include <chrono>
 #include <memory>
 #include <vector>
@@ -65,7 +66,8 @@ struct H265StreamState {
 
 class ImagePublisher {
 public:
-    ImagePublisher(rclcpp::Node* node, int width, int height, int frame_skip_ratio = 2);
+    ImagePublisher(rclcpp::Node* node, int width, int height, int frame_skip_ratio = 2,
+                   int pixel_format = V4L2_PIX_FMT_UYVY);
     ~ImagePublisher() = default;
 
         // 初始化发布器 - 支持发布配置
@@ -112,7 +114,7 @@ public:
     void resetFrameRateStats();
 
 private:
-    // 发布UYVY格式图像
+    // 发布YUV422格式图像（具体顺序由pixel_format决定）
     void publishUYVYImage(int cam_id, const void* buffer_data, int buffer_index, 
                          std::chrono::high_resolution_clock::time_point start_time,
                          int64_t corrected_wall_timestamp_ns = 0);
@@ -139,6 +141,7 @@ private:
     int width_;
     int height_;
     int frame_skip_ratio_;  // 帧抽取比率
+    int pixel_format_;      // V4L2像素格式（UYVY/YUYV等）
     
     // 发布器映射 - 使用字符串key支持多个topic
     std::map<int, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> publishers_;

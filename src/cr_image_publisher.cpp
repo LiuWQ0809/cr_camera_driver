@@ -5,11 +5,39 @@
 #include <sstream>
 #include <algorithm>
 #include <opencv2/opencv.hpp>
+#include <linux/videodev2.h>
+#include <sensor_msgs/image_encodings.hpp>
 
 namespace cr_camera_driver {
 
-ImagePublisher::ImagePublisher(rclcpp::Node* node, int width, int height, int frame_skip_ratio)
-    : node_(node), width_(width), height_(height), frame_skip_ratio_(frame_skip_ratio) {
+namespace {
+const char* yuv422EncodingFromV4L2(int pixel_format) {
+    switch (pixel_format) {
+        case V4L2_PIX_FMT_YUYV:
+            return sensor_msgs::image_encodings::YUV422_YUY2;
+        case V4L2_PIX_FMT_UYVY:
+        default:
+            return sensor_msgs::image_encodings::YUV422;
+    }
+}
+
+int yuv422ToRgbCvtCodeFromV4L2(int pixel_format) {
+    switch (pixel_format) {
+        case V4L2_PIX_FMT_YUYV:
+            return cv::COLOR_YUV2RGB_YUY2;
+        case V4L2_PIX_FMT_UYVY:
+            return cv::COLOR_YUV2RGB_UYVY;
+        default:
+            return -1;
+    }
+}
+}  // namespace
+
+ImagePublisher::ImagePublisher(rclcpp::Node* node, int width, int height, int frame_skip_ratio, int pixel_format)
+    : node_(node), width_(width), height_(height), frame_skip_ratio_(frame_skip_ratio), pixel_format_(pixel_format) {
+    if (pixel_format_ == 0) {
+        pixel_format_ = V4L2_PIX_FMT_UYVY;
+    }
 }
 
 void ImagePublisher::setVICConverter(std::unique_ptr<VICConverter> converter) {
@@ -107,16 +135,16 @@ void ImagePublisher::publishUYVYImage(int cam_id, const void* buffer_data, int b
     msg->header.frame_id = "camera_" + std::to_string(cam_id);
     msg->height = height_;
     msg->width = width_;
-    msg->encoding = "yuv422";  // 使用UYVY格式，无需转换
+    msg->encoding = yuv422EncodingFromV4L2(pixel_format_);  // 使用YUV422格式，无需转换
     msg->is_bigendian = false;
-    msg->step = width_ * 2;  // UYVY是2字节每像素
+    msg->step = width_ * 2;  // YUV422是2字节每像素
     msg->data.resize(width_ * height_ * 2);
     
     try {
-        // 直接复制UYVY数据，无需颜色转换
+        // 直接复制YUV422数据，无需颜色转换
         memcpy(msg->data.data(), buffer_data, width_ * height_ * 2);
         
-        // 为所有UYVY主题发布图像，使用新的多主题发布器系统
+        // 为所有YUV422主题发布图像，使用新的多主题发布器系统
         for (const auto& [key, publisher] : topic_publishers_) {
             // 检查这个发布器是否属于当前相机
             if (key.find(std::to_string(cam_id) + "_") == 0) {
@@ -130,7 +158,7 @@ void ImagePublisher::publishUYVYImage(int cam_id, const void* buffer_data, int b
         }
         
     } catch (const std::exception& e) {
-        RCLCPP_ERROR(node_->get_logger(), "Error publishing UYVY image for camera %d: %s", cam_id, e.what());
+        RCLCPP_ERROR(node_->get_logger(), "Error publishing YUV422 image for camera %d: %s", cam_id, e.what());
     }
 }
 
@@ -141,10 +169,10 @@ void ImagePublisher::publishRGBImage(int cam_id, const void* buffer_data, int bu
     (void)buffer_index;
     (void)start_time;
     
-    // 使用VIC转换器将UYVY转换为RGB
+    // 使用VIC转换器将YUV422转换为RGB
     bool conversion_success = vic_converter_->convertUYVYToRGB(
         static_cast<const uint8_t*>(buffer_data), 
-        width_ * height_ * 2,  // UYVY输入大小
+        width_ * height_ * 2,  // YUV422输入大小
         rgb_buffer_.data(), 
         rgb_buffer_.size()     // RGB输出大小
     );
@@ -205,10 +233,10 @@ void ImagePublisher::publishImageBatch(int cam_id, const void* buffer_data, int 
     (void)buffer_index;
     (void)start_time;
     
-    // 第一步：VIC硬件转换 UYVY -> RGB (full resolution)
+    // 第一步：VIC硬件转换 YUV422 -> RGB (full resolution)
     bool conversion_success = vic_converter_->convertUYVYToRGB(
         static_cast<const uint8_t*>(buffer_data), 
-        width_ * height_ * 2,  // UYVY输入大小
+        width_ * height_ * 2,  // YUV422输入大小
         rgb_buffer_.data(), 
         rgb_buffer_.size()     // RGB输出大小
     );
@@ -344,8 +372,14 @@ void ImagePublisher::publishH265Encoded(int cam_id, const void* buffer_data, int
     } else {
         // 否则使用OpenCV进行转换作为回退
         try {
-            cv::Mat uyvy(height_, width_, CV_8UC2, const_cast<void*>(buffer_data));
-            cv::cvtColor(uyvy, temp_rgb, cv::COLOR_YUV2RGB_UYVY);
+            int cvt_code = yuv422ToRgbCvtCodeFromV4L2(pixel_format_);
+            if (cvt_code < 0) {
+                RCLCPP_WARN(node_->get_logger(),
+                            "Unsupported pixel format for YUV422 conversion, falling back to UYVY");
+                cvt_code = cv::COLOR_YUV2RGB_UYVY;
+            }
+            cv::Mat yuv422(height_, width_, CV_8UC2, const_cast<void*>(buffer_data));
+            cv::cvtColor(yuv422, temp_rgb, cvt_code);
             rgb_ptr = temp_rgb.data;
             rgb_size = temp_rgb.total() * temp_rgb.elemSize();
         } catch (const std::exception& e) {

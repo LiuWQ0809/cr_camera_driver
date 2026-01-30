@@ -55,12 +55,24 @@ options max9296
 options sgx-yuv-gmsl2 enable_3G=1,1,1,1
 EOF
 
-log_info "写入 /etc/modules-load.d/gmsl2.conf ..."
-sudo tee /etc/modules-load.d/gmsl2.conf >/dev/null <<'EOF'
-max9295
-max9296
-sgx-yuv-gmsl2
+log_info "写入 /etc/modprobe.d/gmsl2.conf ..."
+sudo tee /etc/modprobe.d/gmsl2.conf >/dev/null <<'EOF'
+options max9295
+options max9296
+options sgx-yuv-gmsl2 enable_3G=1,1,1,1
 EOF
+
+# 添加到 /etc/modules 以提前加载（kmod 在 systemd 之前加载）
+log_info "添加到 /etc/modules 以提前加载..."
+if ! grep -q "^max9295$" /etc/modules; then
+    echo "max9295" | sudo tee -a /etc/modules >/dev/null
+fi
+if ! grep -q "^max9296$" /etc/modules; then
+    echo "max9296" | sudo tee -a /etc/modules >/dev/null
+fi
+if ! grep -q "^sgx-yuv-gmsl2$" /etc/modules; then
+    echo "sgx-yuv-gmsl2" | sudo tee -a /etc/modules >/dev/null
+fi
 
 log_info "运行 depmod 更新模块依赖..."
 sudo depmod -a "$KERNEL_RELEASE"
@@ -73,6 +85,13 @@ sudo cp "$DTB_DIR/tegra234-camera-yuv-gmsl2x8-overlay.dtbo" /boot/
 log_info "更新 Image..."
 sudo cp "$BOOT_DIR/Image" /boot/Image
 
+# 创建udev规则延迟USB摄像头加载
+log_info "创建udev规则延迟USB摄像头加载..."
+sudo tee /etc/udev/rules.d/99-camera.rules >/dev/null <<'EOF'
+# 延迟USB摄像头设备的枚举，使其分配更高的video设备号
+SUBSYSTEM=="usb", ATTR{idVendor}=="345f", ATTR{idProduct}=="2131", RUN+="/bin/sleep 10"
+EOF
+
 sync
 
-log_info "完成。可执行: sudo modprobe ${MODULE_NAMES[*]} (或重启生效)"
+log_info "完成 重启生效"

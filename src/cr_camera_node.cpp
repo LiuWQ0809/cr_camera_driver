@@ -111,6 +111,8 @@ public:
       throw std::runtime_error("Failed to load camera configuration");
     }
 
+    global_settings_ = config_manager_.getGlobalSettings();
+
     // 使用ROS参数覆盖全局H265开关
     for (auto& config : camera_configs_) {
       config.h265_stream.enabled = enable_h265_param;
@@ -120,15 +122,13 @@ public:
                 enable_h265_param ? "ENABLED" : "DISABLED");
     RCLCPP_INFO(this->get_logger(), "Loaded configuration with %zu cameras", camera_configs_.size());
     
-    // 获取全局设置
-    auto global_settings = config_manager_.getGlobalSettings();
     RCLCPP_INFO(this->get_logger(), "Global settings: VIC=%s, Buffers=%d, SkipRatio=%d", 
-                global_settings.use_vic_converter ? "ENABLED" : "DISABLED",
-                global_settings.num_buffers,
-                global_settings.frame_skip_ratio);
+                global_settings_.use_vic_converter ? "ENABLED" : "DISABLED",
+                global_settings_.num_buffers,
+                global_settings_.frame_skip_ratio);
     
     // 初始化模块
-    initializeModules(global_settings.use_vic_converter);
+    initializeModules(global_settings_.use_vic_converter);
     
     // 初始化摄像头
     for (const auto& config : camera_configs_) {
@@ -151,7 +151,7 @@ public:
     
     // 创建定时器，按配置的间隔打印统计表格
     stats_timer_ = this->create_wall_timer(
-      std::chrono::seconds(global_settings.stats_interval),
+      std::chrono::seconds(global_settings_.stats_interval),
       std::bind(&CRCameraNode::printStatsTable, this));
   }
   
@@ -206,18 +206,15 @@ private:
   
   // 初始化模块
   void initializeModules(bool use_vic) {
-    // 获取全局设置
-    auto global_settings = config_manager_.getGlobalSettings();
-    
     // 初始化V4L2相机模块
     v4l2_camera_ = std::make_unique<cr_camera_driver::V4L2Camera>(this);
+    v4l2_camera_->setFrameSkipRatio(global_settings_.frame_skip_ratio);
     
     // 初始化图像发布模块（从第一个相机配置获取尺寸）
     if (!camera_configs_.empty()) {
       const auto& first_config = camera_configs_[0];
       image_publisher_ = std::make_unique<cr_camera_driver::ImagePublisher>(
-        this, first_config.width, first_config.height, global_settings.frame_skip_ratio,
-        first_config.pixel_format);
+        this, first_config.width, first_config.height, first_config.pixel_format);
     }
     
     // 设置帧回调函数 - 使用线程池异步处理
@@ -253,7 +250,7 @@ private:
         RCLCPP_INFO(this->get_logger(), "VIC converter initialized successfully");
       } else {
         RCLCPP_WARN(this->get_logger(), "VIC converter initialization failed, using raw %s format",
-                    global_settings.pixel_format_str.c_str());
+                    global_settings_.pixel_format_str.c_str());
         vic_converter_.reset();
         use_vic_converter_ = false;
       }
@@ -454,6 +451,7 @@ private:
   cr_camera_driver::YamlConfigManager config_manager_;
   std::vector<cr_camera_driver::YamlCameraConfig> camera_configs_;
   std::vector<int> initialized_cameras_;
+  cr_camera_driver::GlobalSettings global_settings_;
   
   // 模块实例
   std::unique_ptr<cr_camera_driver::V4L2Camera> v4l2_camera_;

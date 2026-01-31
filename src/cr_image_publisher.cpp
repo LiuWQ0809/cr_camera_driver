@@ -33,8 +33,8 @@ int yuv422ToRgbCvtCodeFromV4L2(int pixel_format) {
 }
 }  // namespace
 
-ImagePublisher::ImagePublisher(rclcpp::Node* node, int width, int height, int frame_skip_ratio, int pixel_format)
-    : node_(node), width_(width), height_(height), frame_skip_ratio_(frame_skip_ratio), pixel_format_(pixel_format) {
+ImagePublisher::ImagePublisher(rclcpp::Node* node, int width, int height, int pixel_format)
+    : node_(node), width_(width), height_(height), pixel_format_(pixel_format) {
     if (pixel_format_ == 0) {
         pixel_format_ = V4L2_PIX_FMT_UYVY;
     }
@@ -55,8 +55,8 @@ void ImagePublisher::initializePublisher(int cam_id, const std::string& topic_na
     camera_stats_[cam_id].publish_enabled = publish_enabled;
     
     RCLCPP_INFO(node_->get_logger(), 
-                "Publisher initialized for Camera %d -> %s (publish: %s, skip_ratio: %d)", 
-                cam_id, topic_name.c_str(), publish_enabled ? "YES" : "NO", frame_skip_ratio_);
+                "Publisher initialized for Camera %d -> %s (publish: %s)", 
+                cam_id, topic_name.c_str(), publish_enabled ? "YES" : "NO");
 }
 
 void ImagePublisher::initializeH265Stream(int cam_id, const YamlCameraConfig::H265StreamConfig& config, int cam_width, int cam_height) {
@@ -94,11 +94,6 @@ void ImagePublisher::publishImage(int cam_id, const void* buffer_data, int buffe
     // 检查时间是否已经校正，如果没有校正则不发布
     if (!stats.time_calibrated) {
         return;  // 时间未校正，跳过发布
-    }
-    
-    // 基于frame_skip_ratio的帧率控制
-    if (!shouldPublishFrame(cam_id)) {
-        return;  // 帧率限制，跳过此帧
     }
     
     // Deal Rate统计：只统计真正进行图像处理的帧
@@ -508,19 +503,6 @@ void ImagePublisher::setCameraTimeCalibrated(int cam_id, bool calibrated) {
     if (it != camera_stats_.end()) {
         it->second.time_calibrated = calibrated;
     }
-}
-
-bool ImagePublisher::shouldPublishFrame(int cam_id) const {
-    auto it = camera_stats_.find(cam_id);
-    if (it == camera_stats_.end()) {
-        return false;
-    }
-    
-    const auto& stats = it->second;
-    
-    // 使用frame_skip_ratio进行帧抽取控制
-    // skip_count从0开始，每frame_skip_ratio帧发布一次
-    return (stats.frame_count % frame_skip_ratio_) == 0;
 }
 
 // 更新topic统计

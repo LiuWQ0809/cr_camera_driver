@@ -10,7 +10,7 @@
 
 namespace cr_camera_driver {
 
-V4L2Camera::V4L2Camera(rclcpp::Node* node) : node_(node) {
+V4L2Camera::V4L2Camera(rclcpp::Node* node) : node_(node), frame_skip_ratio_(1) {
     // 预分配5个相机的空间
     cameras_.resize(5);
 }
@@ -73,6 +73,14 @@ void V4L2Camera::setFrameCallback(FrameCallback callback) {
 
 void V4L2Camera::setTimeCalibrationCallback(TimeCalibrationCallback callback) {
     time_calibration_callback_ = callback;
+}
+
+void V4L2Camera::setFrameSkipRatio(int ratio) {
+    if (ratio < 1) {
+        ratio = 1;
+    }
+    frame_skip_ratio_ = ratio;
+    RCLCPP_INFO(node_->get_logger(), "V4L2 frame skip ratio set to %d", frame_skip_ratio_);
 }
 
 bool V4L2Camera::startCapture(int cam_id) {
@@ -170,6 +178,17 @@ bool V4L2Camera::processFrame(int cam_id) {
 
     // 更新V4L2帧率统计
     updateV4L2Stats(cam_id);
+
+    // 采集入口帧抽取：只对进入后续pipeline的帧调用回调
+    if (frame_skip_ratio_ > 1 && (camera.stats.capture_count % frame_skip_ratio_) != 0) {
+        if (!queueBuffer(cam_id, buf.index)) {
+            RCLCPP_ERROR(node_->get_logger(), "Failed to requeue buffer %d for camera %d", 
+                         buf.index, cam_id);
+            return false;
+        }
+        camera.current_buffer_index = buf.index;
+        return true;
+    }
 
     // 调用帧回调函数，传递校正后的世界时间戳
     if (frame_callback_) {

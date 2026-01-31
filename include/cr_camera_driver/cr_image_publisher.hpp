@@ -66,7 +66,7 @@ struct H265StreamState {
 
 class ImagePublisher {
 public:
-    ImagePublisher(rclcpp::Node* node, int width, int height, int frame_skip_ratio = 2,
+    ImagePublisher(rclcpp::Node* node, int width, int height,
                    int pixel_format = V4L2_PIX_FMT_UYVY);
     ~ImagePublisher() = default;
 
@@ -87,9 +87,6 @@ public:
                      
     // 设置相机发布配置
     void setCameraPublishConfig(int cam_id, bool publish_enabled);
-    
-    // 检查是否应该发布帧（基于frame_skip_ratio控制）
-    bool shouldPublishFrame(int cam_id) const;
     
     // 设置VIC转换器
     void setVICConverter(std::unique_ptr<VICConverter> converter);
@@ -140,7 +137,6 @@ private:
     rclcpp::Node* node_;
     int width_;
     int height_;
-    int frame_skip_ratio_;  // 帧抽取比率
     int pixel_format_;      // V4L2像素格式（UYVY/YUYV等）
     
     // 发布器映射 - 使用字符串key支持多个topic

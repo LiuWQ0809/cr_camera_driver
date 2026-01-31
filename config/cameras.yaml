@@ -91,8 +91,8 @@ global_settings:
   num_buffers: 2              # V4L2缓冲区数量（1或2）
   
   # 帧率控制
-  frame_skip_ratio: 1         # 帧跳过比例：1=不跳过，2=每两帧发布一帧，3=每三帧发布一帧
-                              # 此参数统一控制所有启用发布的相机的帧率
+  frame_skip_ratio: 3         # 帧抽取比例：采集入口丢帧，1=不丢，2=每两帧取一帧，3=每三帧取一帧
+                              # 此参数统一控制所有启用相机的帧率
   
   # VIC转换器配置
   use_vic_converter: true     # 是否启用VIC硬件加速转换

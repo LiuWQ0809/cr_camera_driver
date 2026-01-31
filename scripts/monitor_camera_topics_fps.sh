@@ -6,15 +6,17 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/log"
+LOG_FILE=""
+
 INTERVAL="1.0"
 TOPICS=(
-  "/cr/camera/bgr/front_right_960_768"
-  "/cr/camera/bgr/front_left_960_768"
+  "/cr/camera/bgr/front_960_768"
   "/cr/camera/bgr/left_960_768"
   "/cr/camera/bgr/right_960_768"
   "/cr/camera/bgr/rear_960_768"
-  "/cr/camera/h265/front_left"
-  "/cr/camera/h265/front_right"
+  "/cr/camera/h265/front"
   "/cr/camera/h265/left"
   "/cr/camera/h265/right"
   "/cr/camera/h265/rear"
@@ -27,6 +29,9 @@ Usage: monitor_camera_topics_fps.sh [-i|--interval <seconds>] [topic1 topic2 ...
 Options:
   -i, --interval    Print interval in seconds (default: 1.0)
   -h, --help        Show this help
+
+Output:
+  Logs are saved to: /home/nvidia/workspaces/sensors_driver/camera_driver/cr_camera_driver/log
 EOF
 }
 
@@ -59,7 +64,11 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-python3 - "$INTERVAL" "${TOPICS[@]}" <<'PY'
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/camera_topic_fps_$(date +%Y%m%d_%H%M%S).log"
+echo "[INFO] Logging to: $LOG_FILE"
+
+python3 - "$INTERVAL" "${TOPICS[@]}" <<'PY' | tee -a "$LOG_FILE"
 import datetime
 import os
 import sys

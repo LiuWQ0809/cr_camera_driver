@@ -51,7 +51,10 @@ public:
     
     // 设置时间校准完成回调函数
     void setTimeCalibrationCallback(TimeCalibrationCallback callback);
-    
+
+    // 设置帧抽取比例（采集入口丢帧，1=不丢帧）
+    void setFrameSkipRatio(int ratio);
+
     // 开始捕获
     bool startCapture(int cam_id);
     
@@ -149,6 +152,7 @@ private:
     std::vector<CameraData> cameras_;
     FrameCallback frame_callback_;
     TimeCalibrationCallback time_calibration_callback_;
+    int frame_skip_ratio_ = 1;
 
     // 内部辅助函数
     bool openDevice(int cam_id, const std::string& device_path);

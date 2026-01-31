@@ -1,0 +1,15 @@
+[Unit]
+Description=CR Camera Initialization Service
+After=modules-load.service basic.target
+Wants=modules-load.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/nvidia/workspaces/sensors_driver/camera_driver/cr_camera_driver/scripts/camera_init_service.sh
+RemainAfterExit=yes
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=basic.target
